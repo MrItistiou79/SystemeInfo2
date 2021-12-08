@@ -16,6 +16,32 @@
  *         -3 if the archive contains a header with an invalid checksum value
  */
 int check_archive(int tar_fd) {
+    tar_header_t* header = (tar_header_t*)malloc(512);
+    ssize_t err = read(tar_fd, header, 512);
+    
+    if(err != 0) return -1;
+    
+    if (!strcmp(header->magic, "ustart\0") && header->magic != NULL){
+    	return 1;
+    }
+    if (!strcmp(header->version, "00\0") && header->version != NULL){
+    	return 2;
+    }
+    
+    unsigned int sum = 0;
+    char* h = (char*) header;
+    for (int i = 0; i < 512; i++){
+    	if (i>= 148 && i < 156){
+    		sum += (unsigned int) ' ';
+    	}else{
+    		sum += (unsigned int) h[i];
+    	}
+    }	
+    
+    if ( TAR_INT(header->chksum) != sum){
+    	return 3;
+    }
+    
     return 0;
 }
 
@@ -42,6 +68,7 @@ int exists(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_dir(int tar_fd, char *path) {
+    tar_header
     return 0;
 }
 
