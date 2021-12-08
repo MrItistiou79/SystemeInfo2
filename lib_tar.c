@@ -55,6 +55,17 @@ int check_archive(int tar_fd) {
  *         any other value otherwise.
  */
 int exists(int tar_fd, char *path) {
+    tar_header_t* header = (tar_header_t*) malloc(sizeof(tar_header_t)) ;
+    int offset = 0 ;
+    read(tar_fd, header, 512) ;
+    while (header != 0) {
+        if (header->name == path) return 1 ;
+        offset = TAR_INT(header->size)/512;
+        if (TAR_INT(header->size)%512 != 0) offset += 1 ;
+        offset *= 512 ;
+        lseek(tar_fd, offset, SEEK_CUR) ;
+        read(tar_fd, header, 512) ;
+    }
     return 0;
 }
 
@@ -68,7 +79,6 @@ int exists(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_dir(int tar_fd, char *path) {
-    tar_header
     return 0;
 }
 
