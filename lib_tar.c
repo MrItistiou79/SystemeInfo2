@@ -56,13 +56,13 @@ int check_archive(int tar_fd) {
  */
 int exists(int tar_fd, char *path) {
     tar_header_t* header = (tar_header_t*) malloc(sizeof(tar_header_t)) ;
-    int offset = 0 ;
+    lseek(tar_fd, -512, SEEK_CUR) ;
     read(tar_fd, header, 512) ;
-    while (header != 0) {
-        if (header->name == path) return 1 ;
-        offset = TAR_INT(header->size)/512;
-        if (TAR_INT(header->size)%512 != 0) offset += 1 ;
-        offset *= 512 ;
+    int offset ;
+    while (strlen(header->name) != 0) {
+        if (strcmp(header->name, path) == 0) return 1 ;
+        offset = (TAR_INT(header->size)/512)*512;
+        if (TAR_INT(header->size)%512 != 0) offset += 512 ;
         lseek(tar_fd, offset, SEEK_CUR) ;
         read(tar_fd, header, 512) ;
     }
