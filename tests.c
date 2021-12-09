@@ -41,9 +41,11 @@ int main(int argc, char **argv) {
     printf("check_archive returned %d\n", ret);
 
     char* path = "dossier1/fichier1.txt" ;
+    printf("exists returned %d for %s\n", exists(fd, path), path) ;
+    printf("is_file returned %d for %s\n", is_file(fd, path), path) ;
+    path = "dossier1/" ;
+    printf("is_dir returned %d for %s\n", is_dir(fd, path), path) ;
 
-    int is_in = exists(fd, path) ;
-    printf("exists returned %d\n", is_in);
-
+    printf("AREGTYPE = %d and REGTYPE = %d\n", (int) REGTYPE, (int) AREGTYPE) ;
     return 0;
 }

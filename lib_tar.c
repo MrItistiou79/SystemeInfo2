@@ -56,11 +56,11 @@ int check_archive(int tar_fd) {
  */
 int exists(int tar_fd, char *path) {
     tar_header_t* header = (tar_header_t*) malloc(sizeof(tar_header_t)) ;
-    lseek(tar_fd, -512, SEEK_CUR) ;
+    lseek(tar_fd, 0, SEEK_SET) ;
     read(tar_fd, header, 512) ;
     int offset ;
     while (strlen(header->name) != 0) {
-        if (strcmp(header->name, path) == 0) return 1 ;
+        if (strcmp(header->name, path) == 0) return header->typeflag + 10 ;
         offset = (TAR_INT(header->size)/512)*512;
         if (TAR_INT(header->size)%512 != 0) offset += 512 ;
         lseek(tar_fd, offset, SEEK_CUR) ;
@@ -79,7 +79,7 @@ int exists(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_dir(int tar_fd, char *path) {
-    return 0;
+    return exists(tar_fd, path) - 10 == DIRTYPE ;
 }
 
 /**
@@ -92,7 +92,8 @@ int is_dir(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_file(int tar_fd, char *path) {
-    return 0;
+    int check = exists(tar_fd, path) - 10 ;
+    return check == AREGTYPE || check == REGTYPE;
 }
 
 /**
@@ -104,9 +105,9 @@ int is_file(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_symlink(int tar_fd, char *path) {
-    return 0;
+    int check = exists(tar_fd, path) -10 ;
+    return check == SYMTYPE || check == LNKTYPE ;
 }
-
 
 /**
  * Lists the entries at a given path in the archive.
