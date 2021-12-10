@@ -68,7 +68,12 @@ int exists(int tar_fd, char *path) {
  *         any other value otherwise.
  */
 int is_dir(int tar_fd, char *path) {
-    tar_header
+    tar_header_t* header = (tar_header_t*)malloc(sizeof(tar_header_t));
+    read(tar_fd, header, 512);
+    if(header->typeflag != DIRFLAG) return 0;
+    
+    if(strcmp(path, header->name) return 27; 
+    
     return 0;
 }
 
