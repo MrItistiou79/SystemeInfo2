@@ -17,34 +17,39 @@
  */
 int check_archive(int tar_fd) {
     tar_header_t* header = (tar_header_t*)malloc(512);
-    ssize_t err = read(tar_fd, header, 512);
-    
-    if(err != 0) return -1;
-    
-    if (!strcmp(header->magic, "ustar\0") && header->magic != NULL){
-    	return 1;
-    }
-    if (!strcmp(header->version, "00\0") && header->version != NULL){
-    	return 2;
-    }
-    
-    unsigned int sum = 0;
-    char* h = (char*) header;
-    for (int i = 0; i < 512; i++){
-    	if (i>= 148 && i < 156){
-    		sum += (unsigned int) ' ';
-    	}else{
-    		sum += (unsigned int) h[i];
-    	}
-    }	
-    
-    if ( TAR_INT(header->chksum) != sum){
-    	return 3;
-    }
-    
-    return 0;
-}
+    lseek(tar_fd, 0, SEEK_SET) ;
+    read(tar_fd, header, 512);
+    int offset;
+    int nbr = 0;
+    while (strlen(header->name) != 0){
 
+	//magic value 
+	if (strcmp(header->magic, TMAGIC) != 0) return -1;
+	
+	//version
+	if (!strcmp(header->version, TVERSION)) return -2;
+	    
+	//checksum
+	unsigned int sum = 0;
+	char* h = (char*) header;
+	for (int i = 0; i < 512; i++){
+	    if (i>= 148 && i < 156){
+	    	sum += (unsigned int) ' ';
+	    }else{
+	    	sum += (unsigned int) h[i];
+	    }
+	}	
+	if ( TAR_INT(header->chksum) != sum){
+	    return -3;
+	}
+	offset = (TAR_INT(header->size)/512)*512;
+        if (TAR_INT(header->size)%512 != 0) offset += 512 ;
+        lseek(tar_fd, offset, SEEK_CUR) ;
+        read(tar_fd, header, 512) ;
+        nbr++;
+    } 
+    return nbr;
+}
 /**
  * Checks whether an entry exists in the archive.
  *
