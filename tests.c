@@ -25,6 +25,7 @@ void debug_dump(const uint8_t *bytes, size_t len) {
 }
 
 int main(int argc, char **argv) {
+    printf("the size of a header is %ld\n", sizeof(tar_header_t)) ;
     if (argc < 2) {
         printf("Usage: %s tar_file\n", argv[0]);
         return -1;
@@ -39,5 +40,12 @@ int main(int argc, char **argv) {
     int ret = check_archive(fd);
     printf("check_archive returned %d\n", ret);
 
+    char* path = "dossier1/fichier1.txt" ;
+    printf("exists returned %d for %s\n", exists(fd, path), path) ;
+    printf("is_file returned %d for %s\n", is_file(fd, path), path) ;
+    path = "dossier1/" ;
+    printf("is_dir returned %d for %s\n", is_dir(fd, path), path) ;
+
+    printf("AREGTYPE = %d and REGTYPE = %d\n", (int) REGTYPE, (int) AREGTYPE) ;
     return 0;
 }
