@@ -23,26 +23,26 @@ int check_archive(int tar_fd) {
     int nbr = 0;
     while (strlen(header->name) != 0){
 
-	//magic value 
-	if (strcmp(header->magic, TMAGIC) != 0) return -1;
+	    //magic value
+	    if (strcmp(header->magic, TMAGIC) != 0) return -1;
 	
-	//version
-	if (!strcmp(header->version, TVERSION)) return -2;
+	    //version
+	    if (!strcmp(header->version, TVERSION)) return -2;
 	    
-	//checksum
-	unsigned int sum = 0;
-	char* h = (char*) header;
-	for (int i = 0; i < 512; i++){
-	    if (i>= 148 && i < 156){
-	    	sum += (unsigned int) ' ';
-	    }else{
-	    	sum += (unsigned int) h[i];
+	    //checksum
+	    unsigned int sum = 0;
+	    char* h = (char*) header;
+	    for (int i = 0; i < 512; i++){
+	        if (i>= 148 && i < 156){
+	    	    sum += (unsigned int) ' ';
+	        }else{
+	    	    sum += (unsigned int) h[i];
+	        }
 	    }
-	}	
-	if ( TAR_INT(header->chksum) != sum){
-	    return -3;
-	}
-	offset = (TAR_INT(header->size)/512)*512;
+	    if ( TAR_INT(header->chksum) != sum){
+	        return -3;
+	    }
+	    offset = (TAR_INT(header->size)/512)*512;
         if (TAR_INT(header->size)%512 != 0) offset += 512 ;
         lseek(tar_fd, offset, SEEK_CUR) ;
         read(tar_fd, header, 512) ;
@@ -137,8 +137,42 @@ int is_symlink(int tar_fd, char *path) {
  * @return zero if no directory at the given path exists in the archive,
  *         any other value otherwise.
  */
+
 int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
-    return 0;
+    *no_entries = 0 ;
+    int check = exists(tar_fd, path) ;
+    if (check == 0) return 0 ;
+    if (check - 10 == DIRTYPE) { // travelling the whole directory if it is one
+        tar_header_t* header = (tar_header_t*) malloc(sizeof(tar_header_t)) ;
+        read(tar_fd, header, 512) ;
+        int offset ;
+        while (strstr(header->name, path) == header->name) { // running as long as the name of the directory stands in the file name
+            // adding the name we found to entries & no_entries
+            strcpy(entries[*no_entries], header->name) ;
+            *no_entries += 1 ;
+            if (header->typeflag == DIRTYPE) {// check if the found header is linked to a sub-directory
+                // skipping full sub-directory because we have to not keep files it contains
+                char* directory_name = malloc(sizeof(char)*100) ; // directory to skip
+                strcpy(directory_name, header->name) ;
+                lseek(tar_fd, 512, SEEK_CUR) ;
+                read(tar_fd, header, 512) ;
+                while (strstr(header->name, directory_name) == header->name) { // skipping all files if they are included in the directory to skip
+                    offset = (TAR_INT(header->size)/512)*512;
+                    if (TAR_INT(header->size)%512 != 0) offset += 512 ;
+                    lseek(tar_fd, offset, SEEK_CUR) ;
+                    read(tar_fd, header, 512) ;
+                }
+                free(directory_name) ;
+            }
+            else { // continuing to travel normally if header was not linked to a sub-directory
+                offset = (TAR_INT(header->size)/512)*512;
+                if (TAR_INT(header->size)%512 != 0) offset += 512 ;
+                lseek(tar_fd, offset, SEEK_CUR) ;
+                read(tar_fd, header, 512) ;
+            }
+        }
+    }
+    return 1;
 }
 
 /**
