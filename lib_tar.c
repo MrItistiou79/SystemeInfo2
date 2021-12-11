@@ -24,12 +24,12 @@ int check_archive(int tar_fd) {
     while (strlen(header->name) != 0){
 
 	    //magic value
-	    if (strcmp(header->magic, TMAGIC) != 0) return -1;
-	
-	    //version
-	    if (!strcmp(header->version, TVERSION)) return -2;
-	    
-	    //checksum
+        if (memcmp(header->magic, TMAGIC, TMAGLEN) != 0) return -1;
+
+        //version
+        if (memcmp(header->version, TVERSION, TVERSLEN) != 0) return -2;
+
+        //checksum
 	    unsigned int sum = 0;
 	    char* h = (char*) header;
 	    for (int i = 0; i < 512; i++){
@@ -142,7 +142,18 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
     *no_entries = 0 ;
     int check = exists(tar_fd, path) ;
     if (check == 0) return 0 ;
-    if (check - 10 == DIRTYPE) { // travelling the whole directory if it is one
+
+    if (check - 10 == SYMTYPE || check - 10 == LNKTYPE) { // if it is a link, getting his linked directory and calling list() on it !
+        tar_header_t* header = (tar_header_t*) malloc(sizeof(tar_header_t)) ;
+        lseek(tar_fd, -512, SEEK_CUR) ;
+        read(tar_fd, header, 512) ;
+        char* linkname = malloc(sizeof(char)*100) ;
+        strcpy(linkname, header->linkname) ;
+        linkname[strlen(linkname)] = '/' ;
+        list(tar_fd, linkname, entries, no_entries) ; //going to link if it is a link
+        free(linkname) ;
+    }
+    else if (check - 10 == DIRTYPE) { // travelling the whole directory if it is one
         tar_header_t* header = (tar_header_t*) malloc(sizeof(tar_header_t)) ;
         read(tar_fd, header, 512) ;
         int offset ;

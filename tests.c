@@ -24,6 +24,17 @@ void debug_dump(const uint8_t *bytes, size_t len) {
     }
 }
 
+void test_list(int fd, char *path) {
+    size_t *no_entries = malloc(sizeof(size_t)) ;
+    char** entries = malloc(sizeof(char*)*10) ;
+    for (int i = 0 ; i<10 ; i++) entries[i] = malloc(sizeof(char)*100) ;
+    int check = list(fd, path, entries, no_entries) ;
+    printf("list() returned %d for %s and the %zu found files are :\n", check, path, *no_entries) ;
+    for (int i = 0 ; i<*no_entries ; i++) {
+        printf("%s\n", entries[i]) ;
+    }
+}
+
 int main(int argc, char **argv) {
     printf("the size of a header is %ld\n", sizeof(tar_header_t)) ;
     if (argc < 2) {
@@ -68,15 +79,14 @@ int main(int argc, char **argv) {
     path = "dossier1/" ;
     printf("is_dir returned %d for %s\n", is_dir(fd, path), path) ;
 
+    // TEST ON IS_SYMLINK
+    printf("\nTests on is_symlink() :\n") ;
+    path = "dossier1/dossier3" ;
+    printf("is_dir returned %d for %s\n", is_symlink(fd, path), path) ;
+
     // TEST ON LIST
     printf("\nTests on list() :\n") ;
-    size_t *no_entries = malloc(sizeof(size_t)) ;
-    char** entries = malloc(sizeof(char*)*10) ;
-    for (int i = 0 ; i<10 ; i++) entries[i] = malloc(sizeof(char)*100) ;
-    int check = list(fd, path, entries, no_entries) ;
-    printf("list() returned %d for %s\nand the %zu found files are :\n", check, path, *no_entries) ;
-    for (int i = 0 ; i<*no_entries ; i++) {
-        printf("%s\n", entries[i]) ;
-    }
+    test_list(fd, "dos_ex") ;
+    test_list(fd, "dossier1/") ;
     return 0;
 }
