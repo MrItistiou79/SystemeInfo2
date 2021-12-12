@@ -210,11 +210,12 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
     tar_header_t* header = (tar_header_t*) malloc(sizeof(tar_header_t)) ;
     lseek(tar_fd, 0, SEEK_SET) ;
     read(tar_fd, header, 512) ;
-    int oset ;
-    
+    int oset = 0 ;
+    int tot = 0;
     while (strcmp(path, header->name) != 0) {
         oset = (TAR_INT(header->size)/512)*512;
         if (TAR_INT(header->size)%512 != 0) oset += 512 ;
+        tot += oset + 512;
         lseek(tar_fd, oset, SEEK_CUR) ;
         read(tar_fd, header, 512) ;
     }
@@ -226,18 +227,21 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
         char* linkname = malloc(sizeof(char)*100) ;
         strcpy(linkname, header->linkname) ;
         linkname[strlen(linkname)] = '/' ;
+        
         ssize_t toReturn = read_file(tar_fd, linkname, offset, dest, len) ; //going to link if it is a link
 	free(linkname) ;
 	return toReturn; 
     }
-    
     int s = TAR_INT(header->size) - offset;
+    lseek(tar_fd, oset, SEEK_CUR) ;
     if (s < 0) return -2;
     
     if (s > *len) s = *len;
     
-    *len = pread(tar_fd, dest, s, offset+512);
+    *len = pread(tar_fd, dest, s,  tot + 512 + offset);
+ 
     ssize_t toReturn = TAR_INT(header->size) - offset - *len;
+    
     free(header); 
     return toReturn;
 }
