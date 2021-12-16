@@ -65,13 +65,16 @@ int exists(int tar_fd, char *path) {
     read(tar_fd, header, 512) ;
     int offset ;
     while (strlen(header->name) != 0) {
-        if (strcmp(header->name, path) == 0) return header->typeflag + 10 ;
+        if (strcmp(header->name, path) == 0) {
+            return header->typeflag + 10 ;
+        }
         offset = (TAR_INT(header->size)/512)*512;
         if (TAR_INT(header->size)%512 != 0) offset += 512 ;
         lseek(tar_fd, offset, SEEK_CUR) ;
         read(tar_fd, header, 512) ;
     }
     return 0;
+
 }
 
 /**
@@ -112,6 +115,7 @@ int is_file(int tar_fd, char *path) {
  */
 int is_symlink(int tar_fd, char *path) {
     int check = exists(tar_fd, path) -10 ;
+    printf("hello2");
     return check == SYMTYPE || check == LNKTYPE ;
 }
 
@@ -139,7 +143,7 @@ int is_symlink(int tar_fd, char *path) {
  */
 
 int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
-    *no_entries = 0 ;
+    *no_entries = 0;
     int check = exists(tar_fd, path) ;
     if (check == 0) return 0 ;
 
@@ -205,8 +209,9 @@ int list(int tar_fd, char *path, char **entries, size_t *no_entries) {
  *
  */
 ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *len) {
-    if (is_file(tar_fd, path) == 0) return -1;
     int check = exists(tar_fd, path) ;
+    if (is_file(tar_fd, path) == 0 && check - 10 != SYMTYPE && check - 10 != LNKTYPE) return -1;
+
     tar_header_t* header = (tar_header_t*) malloc(sizeof(tar_header_t)) ;
     lseek(tar_fd, 0, SEEK_SET) ;
     read(tar_fd, header, 512) ;
@@ -220,18 +225,12 @@ ssize_t read_file(int tar_fd, char *path, size_t offset, uint8_t *dest, size_t *
         read(tar_fd, header, 512) ;
     }
     
+
     if (check - 10 == SYMTYPE || check - 10 == LNKTYPE) { // if it is a link, getting his linked directory and calling list() on it !
-        tar_header_t* header = (tar_header_t*) malloc(sizeof(tar_header_t)) ;
-        lseek(tar_fd, -512, SEEK_CUR) ;
-        read(tar_fd, header, 512) ;
-        char* linkname = malloc(sizeof(char)*100) ;
-        strcpy(linkname, header->linkname) ;
-        linkname[strlen(linkname)] = '/' ;
-        
-        ssize_t toReturn = read_file(tar_fd, linkname, offset, dest, len) ; //going to link if it is a link
-	free(linkname) ;
-	return toReturn; 
+        ssize_t toReturn = read_file(tar_fd, header->linkname, offset, dest, len);
+        return toReturn;
     }
+    
     int s = TAR_INT(header->size) - offset;
     lseek(tar_fd, oset, SEEK_CUR) ;
     if (s < 0) return -2;
